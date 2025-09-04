@@ -1,0 +1,60 @@
+{
+  "name": "dart-references",
+  "displayName": "dart-references",
+  "description": "Displays the number of references for Dart and Flutter in VSCode",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:dart"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Dart References",
+      "properties": {
+        "dartFunctionReferences.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable the display of function reference counts in Dart files."
+        },
+        "dartReferences.referencesLabel": {
+          "type": "string",
+          "default": "references",
+          "description": "Label for the number of references displayed next to Dart functions, classes, methods, constructors, variables, and enums."
+        },
+        "dartReferences.zeroReferencesLabel": {
+          "type": "string",
+          "default": "No references",
+          "description": "Label displayed when there are no references found for a Dart functions, classes, methods, constructors, variables, and enums."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.25.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^8.1.0"
+  }
+}
