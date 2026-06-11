@@ -39,10 +39,14 @@ const vscode = __importStar(require("vscode"));
 function activate(context) {
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('dartUnusedFunctions');
     context.subscriptions.push(diagnosticCollection);
+    let lastActiveUri = vscode.window.activeTextEditor?.document.uri;
     context.subscriptions.push(vscode.languages.registerCodeLensProvider({ language: 'dart' }, new ReferenceCountCodeLensProvider(diagnosticCollection)));
     // Clear diagnostics when the active editor changes to avoid stale diagnostics
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => {
-        diagnosticCollection.clear();
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (lastActiveUri) {
+            diagnosticCollection.delete(lastActiveUri);
+        }
+        lastActiveUri = editor?.document.uri;
     }));
     // Clear diagnostics when a document is closed
     context.subscriptions.push(vscode.workspace.onDidCloseTextDocument((doc) => {
@@ -54,37 +58,70 @@ class ReferenceCountCodeLensProvider {
     onDidChangeCodeLensesEmitter = new vscode.EventEmitter();
     onDidChangeCodeLenses = this.onDidChangeCodeLensesEmitter.event;
     diagnosticCollection;
+    diagnosticsByDocument = new Map();
+    referenceCache = new Map();
     constructor(diagnosticCollection) {
         this.diagnosticCollection = diagnosticCollection;
     }
     async provideCodeLenses(document) {
+        if (!this.isEnabled()) {
+            this.diagnosticCollection.delete(document.uri);
+            return [];
+        }
         // Clear existing diagnostics for this document
         this.diagnosticCollection.delete(document.uri);
+        const docKey = document.uri.toString();
+        this.diagnosticsByDocument.set(docKey, new Map());
+        this.referenceCache.set(docKey, { version: document.version, counts: new Map() });
         const symbols = await vscode.commands.executeCommand('vscode.executeDocumentSymbolProvider', document.uri);
-        if (!symbols)
+        if (!symbols) {
             return [];
+        }
         const lenses = [];
         const allSymbols = [];
         collectSymbols(symbols, allSymbols);
+        const config = vscode.workspace.getConfiguration('dartReferences');
+        const ignoredMethods = new Set(config.get('ignoredMethods') || []);
         for (const symbol of allSymbols) {
+            // Skip ignored methods
+            if (symbol.kind === vscode.SymbolKind.Method && ignoredMethods.has(symbol.name)) {
+                continue;
+            }
             const line = document.lineAt(symbol.selectionRange.start.line);
             const range = new vscode.Range(line.range.start, line.range.start);
             const lens = new vscode.CodeLens(range);
             lens.uri = document.uri;
             lens.position = symbol.selectionRange.start;
             lens.symbol = symbol; // Store symbol for use in resolveCodeLens
+            lens.documentVersion = document.version;
             lenses.push(lens);
         }
         return lenses;
     }
     async resolveCodeLens(codeLens, token) {
+        if (token.isCancellationRequested) {
+            return codeLens;
+        }
         const uri = codeLens.uri;
         const position = codeLens.position;
         const symbol = codeLens.symbol;
+        const documentVersion = codeLens.documentVersion;
+        const docKey = uri.toString();
         try {
-            const locations = await vscode.commands.executeCommand('vscode.executeReferenceProvider', uri, position);
-            const isDeclaration = (loc) => loc.uri.fsPath === uri.fsPath && loc.range.contains(position);
-            const useCount = locations ? locations.filter(loc => !isDeclaration(loc)).length : 0;
+            let cacheEntry = this.referenceCache.get(docKey);
+            if (!cacheEntry || (documentVersion !== undefined && cacheEntry.version !== documentVersion)) {
+                cacheEntry = { version: documentVersion ?? 0, counts: new Map() };
+                this.referenceCache.set(docKey, cacheEntry);
+            }
+            const symbolKey = getSymbolKey(symbol);
+            let useCount = cacheEntry.counts.get(symbolKey);
+            let locations;
+            if (useCount === undefined) {
+                locations = await vscode.commands.executeCommand('vscode.executeReferenceProvider', uri, position);
+                const isDeclaration = (loc) => loc.uri.fsPath === uri.fsPath && loc.range.contains(position);
+                useCount = locations ? locations.filter(loc => !isDeclaration(loc)).length : 0;
+                cacheEntry.counts.set(symbolKey, useCount);
+            }
             const config = vscode.workspace.getConfiguration('dartReferences');
             const label = config.get('referencesLabel')?.trim() || 'references';
             const zeroLabel = config.get('zeroReferencesLabel')?.trim() || 'No references';
@@ -93,8 +130,10 @@ class ReferenceCountCodeLensProvider {
             if (useCount === 0 && (symbol.kind === vscode.SymbolKind.Function || symbol.kind === vscode.SymbolKind.Method)) {
                 const diagnostic = new vscode.Diagnostic(symbol.selectionRange, `Unused ${symbol.kind === vscode.SymbolKind.Function ? 'function' : 'method'} '${symbol.name}'`, vscode.DiagnosticSeverity.Warning);
                 diagnostic.code = 'unused-function';
-                const existingDiagnostics = this.diagnosticCollection.get(uri) || [];
-                this.diagnosticCollection.set(uri, [...existingDiagnostics, diagnostic]);
+                const docDiagnostics = this.diagnosticsByDocument.get(docKey) || new Map();
+                docDiagnostics.set(symbolKey, diagnostic);
+                this.diagnosticsByDocument.set(docKey, docDiagnostics);
+                this.diagnosticCollection.set(uri, Array.from(docDiagnostics.values()));
             }
             codeLens.command = {
                 title,
@@ -111,6 +150,16 @@ class ReferenceCountCodeLensProvider {
             };
         }
         return codeLens;
+    }
+    isEnabled() {
+        const config = vscode.workspace.getConfiguration('dartReferences');
+        const enabled = config.get('enable');
+        if (enabled !== undefined) {
+            return enabled;
+        }
+        const legacyConfig = vscode.workspace.getConfiguration('dartFunctionReferences');
+        const legacyEnabled = legacyConfig.get('enable');
+        return legacyEnabled !== undefined ? legacyEnabled : true;
     }
 }
 function collectSymbols(symbols, result) {
@@ -132,5 +181,8 @@ function isRelevantKind(kind) {
         vscode.SymbolKind.Variable,
         vscode.SymbolKind.Enum,
     ].includes(kind);
+}
+function getSymbolKey(symbol) {
+    return `${symbol.kind}:${symbol.name}:${symbol.selectionRange.start.line}:${symbol.selectionRange.start.character}`;
 }
 //# sourceMappingURL=extension.js.map
