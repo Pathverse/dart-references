@@ -12,15 +12,16 @@
   "activationEvents": [
     "onLanguage:dart"
   ],
+  "icon": "icon.png",
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
       "title": "Dart References",
       "properties": {
-        "dartFunctionReferences.enable": {
+        "dartReferences.enable": {
           "type": "boolean",
           "default": true,
-          "description": "Enable or disable the display of function reference counts in Dart files."
+          "description": "Enable or disable the display of reference counts in Dart files."
         },
         "dartReferences.referencesLabel": {
           "type": "string",
@@ -31,17 +32,38 @@
           "type": "string",
           "default": "No references",
           "description": "Label displayed when there are no references found for a Dart functions, classes, methods, constructors, variables, and enums."
+        },
+        "dartReferences.cacheMaxEntries": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 0,
+          "description": "Maximum number of symbols whose reference counts are cached (least-recently-used entries are evicted first). Set 0 for no limit."
+        },
+        "dartReferences.maxCachedLocations": {
+          "type": "number",
+          "default": 1000,
+          "minimum": 0,
+          "description": "Reference lists longer than this are cached as a count only; clicking the lens re-fetches the locations. Keeps hot symbols in large monorepos from holding big location lists in memory. Set 0 for no limit."
+        },
+        "dartReferences.cacheTtlSeconds": {
+          "type": "number",
+          "default": 60,
+          "minimum": 0,
+          "description": "Seconds a cached reference count stays valid (any Dart file save also clears the cache). Set 0 to keep entries until the next save."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run bundle",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --minify",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "mocha \"out/test/unit/**/*.test.js\" --require ./out/test/unit/support/vscodeHook.js",
+    "test:vscode": "vscode-test",
+    "coverage": "npm run compile && c8 --include \"out/**/*.js\" --exclude \"out/test/**\" --reporter=text mocha \"out/test/unit/**/*.test.js\" --require ./out/test/unit/support/vscodeHook.js"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
@@ -51,10 +73,10 @@
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "c8": "^11.0.0",
+    "esbuild": "^0.28.0",
     "eslint": "^9.25.1",
+    "mocha": "^11.7.6",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "vscode-languageclient": "^8.1.0"
   }
 }

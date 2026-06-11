@@ -1,6 +1,11 @@
 .vscode/**
 .vscode-test/**
 src/**
+out/test/**
+out/core/**
+out/referenceLensProvider.js
+coverage/**
+node_modules/**
 .gitignore
 .yarnrc
 vsc-extension-quickstart.md
