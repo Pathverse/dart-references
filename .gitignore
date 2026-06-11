@@ -5,11 +5,12 @@ dist/
 # Dependencies
 node_modules/
 
+# Test runner and coverage
+.vscode-test/
+coverage/
+
 # Packaged extension
 *.vsix
-
-# Test runner
-.vscode-test/
 
 # macOS
 .DS_Store
