@@ -3,6 +3,11 @@
   "displayName": "dart-references",
   "description": "Displays the number of references for Dart and Flutter in VSCode",
   "version": "0.0.1",
+  "publisher": "pathverse",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pathverse/dart-references.git"
+  },
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -73,6 +78,7 @@
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.10",
     "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.2",
     "c8": "^11.0.0",
     "esbuild": "^0.28.0",
     "eslint": "^9.25.1",
