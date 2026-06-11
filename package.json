@@ -2,7 +2,7 @@
   "name": "dart-references",
   "displayName": "dart-references",
   "description": "Displays the number of references for Dart and Flutter in VSCode",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "pathverse",
   "repository": {
     "type": "git",
