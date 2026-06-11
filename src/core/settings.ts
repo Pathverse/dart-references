@@ -2,6 +2,8 @@ export interface DartReferencesSettings {
 	enabled: boolean;
 	referencesLabel: string;
 	zeroReferencesLabel: string;
+	/** Method names that never get a lens or unused diagnostic (e.g. Flutter lifecycle overrides). */
+	ignoredMethods: ReadonlySet<string>;
 	/** Maximum cached symbols (LRU-evicted); 0 = unlimited. */
 	cacheMaxEntries: number;
 	/** Above this many locations only the count is cached; 0 = unlimited. */
@@ -14,6 +16,7 @@ export interface RawSettings {
 	enable?: unknown;
 	referencesLabel?: unknown;
 	zeroReferencesLabel?: unknown;
+	ignoredMethods?: unknown;
 	cacheMaxEntries?: unknown;
 	maxCachedLocations?: unknown;
 	cacheTtlSeconds?: unknown;
@@ -25,6 +28,30 @@ function labelOrDefault(raw: unknown, fallback: string): string {
 	}
 	const trimmed = raw.trim();
 	return trimmed.length > 0 ? trimmed : fallback;
+}
+
+// Mirrors the dartReferences.ignoredMethods default in package.json.
+const defaultIgnoredMethods: readonly string[] = [
+	'build',
+	'initState',
+	'dispose',
+	'didChangeDependencies',
+	'didUpdateWidget',
+	'reassemble',
+	'deactivate',
+	'setState',
+	'createState',
+	'toString',
+	'hashCode',
+	'operator==',
+	'noSuchMethod',
+];
+
+function ignoredMethodsOrDefault(raw: unknown): ReadonlySet<string> {
+	if (!Array.isArray(raw)) {
+		return new Set(defaultIgnoredMethods);
+	}
+	return new Set(raw.filter((name): name is string => typeof name === 'string'));
 }
 
 function limitOrDefault(raw: unknown, fallback: number): number {
@@ -39,6 +66,7 @@ export function normalizeSettings(raw: RawSettings): DartReferencesSettings {
 		enabled: raw.enable !== false,
 		referencesLabel: labelOrDefault(raw.referencesLabel, 'references'),
 		zeroReferencesLabel: labelOrDefault(raw.zeroReferencesLabel, 'No references'),
+		ignoredMethods: ignoredMethodsOrDefault(raw.ignoredMethods),
 		cacheMaxEntries: limitOrDefault(raw.cacheMaxEntries, 2000),
 		maxCachedLocations: limitOrDefault(raw.maxCachedLocations, 1000),
 		cacheTtlMs: limitOrDefault(raw.cacheTtlSeconds, 60) * 1000,

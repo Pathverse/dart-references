@@ -7,6 +7,21 @@ describe('normalizeSettings', () => {
 			enabled: true,
 			referencesLabel: 'references',
 			zeroReferencesLabel: 'No references',
+			ignoredMethods: new Set([
+				'build',
+				'initState',
+				'dispose',
+				'didChangeDependencies',
+				'didUpdateWidget',
+				'reassemble',
+				'deactivate',
+				'setState',
+				'createState',
+				'toString',
+				'hashCode',
+				'operator==',
+				'noSuchMethod',
+			]),
 			cacheMaxEntries: 2000,
 			maxCachedLocations: 1000,
 			cacheTtlMs: 60_000,
@@ -54,6 +69,11 @@ describe('normalizeSettings', () => {
 
 	it('floors fractional limit values', () => {
 		assert.strictEqual(normalizeSettings({ cacheMaxEntries: 250.7 }).cacheMaxEntries, 250);
+	});
+
+	it('uses the configured ignoredMethods list, dropping non-string entries', () => {
+		const settings = normalizeSettings({ ignoredMethods: ['mine', 42] });
+		assert.deepStrictEqual([...settings.ignoredMethods], ['mine']);
 	});
 
 	it('falls back to defaults for negative or non-numeric limits', () => {

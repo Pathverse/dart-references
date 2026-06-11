@@ -82,6 +82,16 @@ describe('ReferenceCountCodeLensProvider', () => {
 			);
 		});
 
+		it('skips methods listed in ignoredMethods but not functions sharing the name', async () => {
+			symbolsResult = [
+				fakeSymbol('build', SymbolKind.Method, 2),
+				fakeSymbol('build', SymbolKind.Function, 5),
+				fakeSymbol('helper', SymbolKind.Method, 8),
+			];
+			const lenses = await provider.provideCodeLenses(document(), token());
+			assert.deepStrictEqual(lenses.map(l => l.range.start.line), [5, 8]);
+		});
+
 		it('returns no lenses and clears diagnostics when disabled', async () => {
 			settings = normalizeSettings({ enable: false });
 			const lenses = await provider.provideCodeLenses(document(), token());

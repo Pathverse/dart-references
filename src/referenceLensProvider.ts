@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { CachedReferences, ReferenceCache } from './core/referenceCache';
 import { DocumentDiagnosticsStore } from './core/diagnosticsStore';
-import { collectRelevantSymbols } from './core/symbols';
+import { collectRelevantSymbols, symbolKinds } from './core/symbols';
 import { countNonDeclarationReferences, LocationLike } from './core/referenceCount';
 import { DartReferencesSettings, formatLensTitle } from './core/settings';
 import { shouldFlagUnused, unusedSymbolMessage } from './core/unused';
@@ -56,7 +56,8 @@ export class ReferenceCountCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	async provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.CodeLens[]> {
-		if (!this.deps.getSettings().enabled) {
+		const settings = this.deps.getSettings();
+		if (!settings.enabled) {
 			this.diagnostics.clearDocument(document.uri.toString());
 			this.deps.setDiagnostics(document.uri, []);
 			return [];
@@ -72,6 +73,9 @@ export class ReferenceCountCodeLensProvider implements vscode.CodeLensProvider {
 
 		const lenses: vscode.CodeLens[] = [];
 		for (const symbol of collectRelevantSymbols(symbols)) {
+			if (symbol.kind === symbolKinds.method && settings.ignoredMethods.has(symbol.name)) {
+				continue;
+			}
 			const lineStart = new vscode.Position(symbol.selectionRange.start.line, 0);
 			const lens = new vscode.CodeLens(new vscode.Range(lineStart, lineStart));
 			this.lensMetadata.set(lens, {

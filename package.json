@@ -1,8 +1,11 @@
 {
   "name": "dart-references",
-  "displayName": "dart-references",
+  "displayName": "Dart References",
   "description": "Displays the number of references for Dart and Flutter in VSCode",
+  "author": "Pathverse Inc.",
+  "license": "MIT",
   "version": "0.1.0",
+  "icon": "dart-logo.png",
   "publisher": "pathverse",
   "repository": {
     "type": "git",
@@ -17,7 +20,6 @@
   "activationEvents": [
     "onLanguage:dart"
   ],
-  "icon": "icon.png",
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
@@ -37,6 +39,25 @@
           "type": "string",
           "default": "No references",
           "description": "Label displayed when there are no references found for a Dart functions, classes, methods, constructors, variables, and enums."
+        },
+        "dartReferences.ignoredMethods": {
+          "type": "array",
+          "default": [
+            "build",
+            "initState",
+            "dispose",
+            "didChangeDependencies",
+            "didUpdateWidget",
+            "reassemble",
+            "deactivate",
+            "setState",
+            "createState",
+            "toString",
+            "hashCode",
+            "operator==",
+            "noSuchMethod"
+          ],
+          "description": "List of method names to ignore when displaying reference counts (e.g., Flutter lifecycle methods and common overrides)."
         },
         "dartReferences.cacheMaxEntries": {
           "type": "number",

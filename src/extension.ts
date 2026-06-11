@@ -14,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 				enable: config.get('enable'),
 				referencesLabel: config.get('referencesLabel'),
 				zeroReferencesLabel: config.get('zeroReferencesLabel'),
+				ignoredMethods: config.get('ignoredMethods'),
 				cacheMaxEntries: config.get('cacheMaxEntries'),
 				maxCachedLocations: config.get('maxCachedLocations'),
 				cacheTtlSeconds: config.get('cacheTtlSeconds'),
